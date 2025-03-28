@@ -7,10 +7,14 @@ Kali:
 mkdir -p /home/kali/examserver
 cd /home/kali/examserver
 wget https://raw.githubusercontent.com/NaorGolanRIT/exam2/refs/heads/main/fullcommand.txt
+wget https://raw.githubusercontent.com/NaorGolanRIT/exam2/refs/heads/main/shortcommand.txt
 wget https://github.com/samratashok/ADModule/archive/refs/heads/master.zip
 wget https://raw.githubusercontent.com/PowerShellEmpire/PowerTools/master/PowerView/powerview.ps1 -O powerview.ps1
 sudo python3 -m http.server 80
 
+Windows Powershell (grab the text file with the commands):
+Invoke-WebRequest -Uri "http://192.168.56.5/shortcommand.txt" -OutFile "C:\Users\robb.stark\Desktop\shortcommand.txt"
+Invoke-WebRequest -Uri "http://192.168.56.5/fullcommand.txt" -OutFile "C:\Users\robb.stark\Desktop\fullcommand.txt"
 
 Windows Powershell instance 1:
 
